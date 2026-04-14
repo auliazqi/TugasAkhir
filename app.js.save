@@ -1,0 +1,60 @@
+const mqtt = require('mqtt');
+const mysql = require('mysql2');
+const express = require('express');
+const cors = require('cors');
+const app = express();
+
+app.use(cors());
+
+// 1. Koneksi Database Lokal VPS
+const db = mysql.createConnection({
+    host: 'localhost',
+    user: 'root', 
+    password: '', // Kosongkan jika saat sudo mysql tadi Baginda tidak pakai password
+    database: 'simulator_vps'
+});
+
+// 2. Koneksi ke Mosquitto Lokal
+const client = mqtt.connect('mqtt://localhost', {
+    username: 'user_aura',
+    password: 'PanciGacor123' // Gunakan password yang Baginda buat saat setup Mosquitto tadi
+});
+
+client.on('connect', () => {
+    console.log("✅ Baginda Ratu, Broker Mosquitto sudah Terkoneksi!");
+    client.subscribe('panci/data');
+});
+
+// 3. Menangkap Data MQTT & Simpan ke Tabel sensor_data
+client.on('message', (topic, message) => {
+    try {
+        const d = JSON.parse(message.toString());
+        
+        // Query sesuai dengan struktur tabel Baginda di gambar sebelumnya
+        const query = `INSERT INTO sensor_data 
+        (temperature, pressure, relay_status, sv1_status, sv2_status, buzzer_status, voltage_temp, voltage_pressure, send_timestamp, receive_timestamp) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`;
+
+        const values = [
+            d.temp, d.pres, d.relay, d.sv1, d.sv2, d.buzzer, d.v_temp, d.v_pres, d.s_time
+        ];
+
+        db.query(query, values, (err) => {
+            if (err) console.log("❌ Waduh Ratu, Error Simpan:", err);
+            else console.log("🚀 Data Sensor Baru Berhasil Disimpan!");
+        });
+    } catch (e) {
+        console.log("⚠️ Format data tidak sesuai JSON");
+    }
+});
+
+// 4. API Endpoint untuk Dashboard (Ambil 1 data terakhir)
+app.get('/api/monitoring', (req, res) => {
+    db.query('SELECT * FROM sensor_data ORDER BY id DESC LIMIT 1', (err, results) => {
+        if (err) res.status(500).send(err);
+        else res.json(results[0]);
+    });
+});
+
+const PORT = 3000;
+app.listen(PORT, () => console.log(`🏰 Backend Kerajaan Berjalan di Port ${PORT}`));
