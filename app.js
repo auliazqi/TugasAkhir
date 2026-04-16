@@ -16,18 +16,24 @@ app.use(express.static(path.join(__dirname, 'frontend')));
 // ============================================================
 // 1. DATABASE CONNECTION  (Hostinger VPS MySQL)
 // ============================================================
-const db = mysql.createConnection({
-    host: 'simulator.server.mysql.database.azure.com',
+const db = mysql.createPool({
+    host: 'simulatorserver.mysql.database.azure.com',
     user: 'auliazqi',
-    password: 'Admin123',                // ganti sesuai password MySQL VPS kamu
-    database: 'simulator_db'
+    password: 'Admin123',
+    database: 'simulator_db',
+    ssl: { rejectUnauthorized: false },   // required for Azure MySQL
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
-db.connect((err) => {
+// Test connection on startup
+db.getConnection((err, connection) => {
     if (err) {
         console.error('❌ Gagal koneksi database:', err.message);
     } else {
         console.log('✅ Database MySQL Terhubung!');
+        connection.release();
     }
 });
 
