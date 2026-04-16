@@ -1,8 +1,8 @@
-const mqtt    = require('mqtt');    
-const mysql   = require('mysql2');
+const mqtt = require('mqtt');
+const mysql = require('mysql2');
 const express = require('express');
-const cors    = require('cors');
-const path    = require('path');
+const cors = require('cors');
+const path = require('path');
 
 const app = express();
 app.use(cors());
@@ -17,10 +17,10 @@ app.use(express.static(path.join(__dirname, 'frontend')));
 // 1. DATABASE CONNECTION  (Hostinger VPS MySQL)
 // ============================================================
 const db = mysql.createConnection({
-    host:     'localhost',
-    user:     'root',
-    password: '',                // ganti sesuai password MySQL VPS kamu
-    database: 'simulator_vps'
+    host: 'simulator.server.mysql.database.azure.com',
+    user: 'auliazqi',
+    password: 'Admin123',                // ganti sesuai password MySQL VPS kamu
+    database: 'simulator_db'
 });
 
 db.connect((err) => {
@@ -36,23 +36,23 @@ db.connect((err) => {
 // ============================================================
 // FIX #1: Ganti mqtt://localhost → HiveMQ Cloud URL
 // FIX #2: Username/password disamakan dengan ESP32 firmware
-const MQTT_BROKER   = 'mqtts://daeb68cee1a0470ab4fbd5a4f1691fe8.s1.eu.hivemq.cloud';
-const MQTT_PORT     = 8883;
-const MQTT_USER     = 'auliazqi';
-const MQTT_PASS     = 'Serveradmin123';
+const MQTT_BROKER = 'mqtts://daeb68cee1a0470ab4fbd5a4f1691fe8.s1.eu.hivemq.cloud';
+const MQTT_PORT = 8883;
+const MQTT_USER = 'auliazqi';
+const MQTT_PASS = 'Serveradmin123';
 
 // FIX #3: Topik yang benar — sama persis dengan publish di firmware
-const TOPIC_TEMP     = 'plant/data/temperature';
+const TOPIC_TEMP = 'plant/data/temperature';
 const TOPIC_PRESSURE = 'sis/data/pressure';
-const TOPIC_CONTROL  = 'admin/control/setpoints';  // backend publish ke ESP32
+const TOPIC_CONTROL = 'admin/control/setpoints';  // backend publish ke ESP32
 
 const mqttClient = mqtt.connect(MQTT_BROKER, {
-    port:               MQTT_PORT,
-    username:           MQTT_USER,
-    password:           MQTT_PASS,
+    port: MQTT_PORT,
+    username: MQTT_USER,
+    password: MQTT_PASS,
     rejectUnauthorized: false,          // setInsecure() equivalent
-    reconnectPeriod:    5000,
-    clientId:           'Backend_Server_' + Math.random().toString(16).slice(2, 8),
+    reconnectPeriod: 5000,
+    clientId: 'Backend_Server_' + Math.random().toString(16).slice(2, 8),
 });
 
 mqttClient.on('connect', () => {
@@ -61,7 +61,7 @@ mqttClient.on('connect', () => {
     // FIX #3: Subscribe ke topik yang benar
     mqttClient.subscribe([TOPIC_TEMP, TOPIC_PRESSURE], { qos: 1 }, (err) => {
         if (err) console.error('❌ Gagal subscribe:', err.message);
-        else     console.log(`📡 Subscribed ke: ${TOPIC_TEMP} & ${TOPIC_PRESSURE}`);
+        else console.log(`📡 Subscribed ke: ${TOPIC_TEMP} & ${TOPIC_PRESSURE}`);
     });
 });
 
@@ -97,14 +97,14 @@ mqttClient.on('message', (topic, message) => {
             VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
         `;
         const values = [
-            d.temperature   ?? null,
-            d.voltage       ?? null,
+            d.temperature ?? null,
+            d.voltage ?? null,
             d.valve_percent ?? null,
             d.send_timestamp ?? null,
         ];
         db.query(query, values, (err) => {
             if (err) console.error('❌ Error Simpan Suhu:', err.message);
-            else     console.log('🌡️  Data Suhu Tersimpan:', d.temperature, '°C');
+            else console.log('🌡️  Data Suhu Tersimpan:', d.temperature, '°C');
         });
     }
 
@@ -118,17 +118,17 @@ mqttClient.on('message', (topic, message) => {
             VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         `;
         const values = [
-            d.pressure         ?? null,
-            d.voltage          ?? null,
-            d.sv1_state        ?? null,   // firmware sends sv1_state
-            d.sv2_state        ?? null,   // firmware sends sv2_state
-            d.alarm_status     ?? null,   // firmware sends alarm_status ("ON"/"OFF")
-            d.shutdown_active  ?? false,
-            d.send_timestamp   ?? null,
+            d.pressure ?? null,
+            d.voltage ?? null,
+            d.sv1_state ?? null,   // firmware sends sv1_state
+            d.sv2_state ?? null,   // firmware sends sv2_state
+            d.alarm_status ?? null,   // firmware sends alarm_status ("ON"/"OFF")
+            d.shutdown_active ?? false,
+            d.send_timestamp ?? null,
         ];
         db.query(query, values, (err) => {
             if (err) console.error('❌ Error Simpan Tekanan:', err.message);
-            else     console.log('💨 Data Tekanan Tersimpan:', d.pressure, 'Bar');
+            else console.log('💨 Data Tekanan Tersimpan:', d.pressure, 'Bar');
         });
     }
 });
@@ -173,7 +173,7 @@ app.get('/api/latest-data', (req, res) => {
 // ============================================================
 app.post('/api/control/setpoint/:param', (req, res) => {
     const { param } = req.params;
-    const { value }  = req.body;
+    const { value } = req.body;
 
     if (value === undefined || isNaN(parseFloat(value))) {
         return res.status(400).json({ success: false, message: 'Value tidak valid.' });
@@ -181,8 +181,8 @@ app.post('/api/control/setpoint/:param', (req, res) => {
 
     // Map parameter frontend → nama yang dibaca firmware
     const paramMap = {
-        'temp':     'temp',
-        'kp':       'kp',
+        'temp': 'temp',
+        'kp': 'kp',
         'sampling': 'sampling',
     };
 
@@ -209,14 +209,14 @@ app.post('/api/control/setpoint/:param', (req, res) => {
 // ============================================================
 app.post('/api/control/pressure-limit/:param', (req, res) => {
     const { param } = req.params;
-    const { value }  = req.body;
+    const { value } = req.body;
 
     if (value === undefined || isNaN(parseFloat(value))) {
         return res.status(400).json({ success: false, message: 'Value tidak valid.' });
     }
 
     const paramMap = {
-        'pressure':          'pressure_pahh',
+        'pressure': 'pressure_pahh',
         'pressure-sampling': 'sampling',
     };
 
@@ -256,7 +256,7 @@ app.post('/api/sis-control', (req, res) => {
 app.get('/api/export/temperature-log', (req, res) => {
     const { start, end } = req.query;
 
-    let query  = 'SELECT * FROM sensor_temperature';
+    let query = 'SELECT * FROM sensor_temperature';
     const vals = [];
 
     if (start && end) {
@@ -272,8 +272,8 @@ app.get('/api/export/temperature-log', (req, res) => {
 
         // Build CSV
         const headers = Object.keys(results[0]).join(',');
-        const rows    = results.map(r => Object.values(r).join(','));
-        const csv     = [headers, ...rows].join('\n');
+        const rows = results.map(r => Object.values(r).join(','));
+        const csv = [headers, ...rows].join('\n');
 
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename="temperature_log.csv"');
@@ -289,7 +289,7 @@ app.get('/api/export/temperature-log', (req, res) => {
 app.get('/api/export/pressure-log', (req, res) => {
     const { start, end } = req.query;
 
-    let query  = 'SELECT * FROM sensor_pressure';
+    let query = 'SELECT * FROM sensor_pressure';
     const vals = [];
 
     if (start && end) {
@@ -304,8 +304,8 @@ app.get('/api/export/pressure-log', (req, res) => {
         if (!results.length) return res.status(200).send('');
 
         const headers = Object.keys(results[0]).join(',');
-        const rows    = results.map(r => Object.values(r).join(','));
-        const csv     = [headers, ...rows].join('\n');
+        const rows = results.map(r => Object.values(r).join(','));
+        const csv = [headers, ...rows].join('\n');
 
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename="pressure_log.csv"');
