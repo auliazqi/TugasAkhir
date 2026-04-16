@@ -1,4 +1,4 @@
-const mqtt    = require('mqtt');
+const mqtt    = require('mqtt');    
 const mysql   = require('mysql2');
 const express = require('express');
 const cors    = require('cors');
@@ -43,7 +43,7 @@ const MQTT_PASS     = 'Serveradmin123';
 
 // FIX #3: Topik yang benar — sama persis dengan publish di firmware
 const TOPIC_TEMP     = 'plant/data/temperature';
-const TOPIC_PRESSURE = 'plant/data/pressure';
+const TOPIC_PRESSURE = 'sis/data/pressure';
 const TOPIC_CONTROL  = 'admin/control/setpoints';  // backend publish ke ESP32
 
 const mqttClient = mqtt.connect(MQTT_BROKER, {
@@ -120,9 +120,9 @@ mqttClient.on('message', (topic, message) => {
         const values = [
             d.pressure         ?? null,
             d.voltage          ?? null,
-            d.sv1_status       ?? null,
-            d.sv2_status       ?? null,
-            d.buzzer_status    ?? null,
+            d.sv1_state        ?? null,   // firmware sends sv1_state
+            d.sv2_state        ?? null,   // firmware sends sv2_state
+            d.alarm_status     ?? null,   // firmware sends alarm_status ("ON"/"OFF")
             d.shutdown_active  ?? false,
             d.send_timestamp   ?? null,
         ];
