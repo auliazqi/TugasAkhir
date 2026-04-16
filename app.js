@@ -316,7 +316,7 @@ app.get('/api/export/pressure-log', (req, res) => {
 // ============================================================
 // 10. Fallback: semua route lain → index.html (SPA support)
 // ============================================================
-app.get('*', (req, res) => {
+app.get('/{*splat}', (req, res) => {
     res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
